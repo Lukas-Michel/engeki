@@ -8,6 +8,7 @@ export type WatchProgress = {
   totalEpisodes: number;
   nextRelease: string;
   imageUrl: string;
+  posterUrl: string;
 };
 
 export type HistoryEntry = {
@@ -29,26 +30,7 @@ export type SocialEntry = {
   avatar: string;
 };
 
-export const watchProgress: WatchProgress[] = [
-  {
-    id: 'progress-1',
-    title: 'North Pier',
-    season: 2,
-    episode: 4,
-    totalEpisodes: 8,
-    nextRelease: 'Friday',
-    imageUrl: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=900&q=80',
-  },
-  {
-    id: 'progress-2',
-    title: 'Signal Room',
-    season: 1,
-    episode: 6,
-    totalEpisodes: 10,
-    nextRelease: 'Tonight',
-    imageUrl: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=900&q=80',
-  },
-];
+export const watchProgress: WatchProgress[] = [];
 
 export const historyEntries: HistoryEntry[] = [
   {

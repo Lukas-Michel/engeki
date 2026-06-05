@@ -1,27 +1,31 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { useColorScheme } from 'react-native';
+import { Platform } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
+import { useSchemeName } from '@/hooks/use-theme';
 
 export default function AppTabs() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const scheme = useSchemeName();
+  const colors = Colors[scheme];
 
   return (
     <NativeTabs
-      backgroundColor={colors.background}
-      blurEffect={scheme === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
-      iconColor={{ default: colors.textSecondary, selected: colors.accent }}
+      backgroundColor={colors.backgroundElevated}
+      blurEffect={Platform.select({
+        ios: scheme === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight',
+      })}
+      iconColor={{ default: colors.textTertiary, selected: colors.accent }}
       indicatorColor={colors.accentSoft}
+      rippleColor={colors.accentSoft}
       labelStyle={{
-        default: { color: colors.textSecondary },
-        selected: { color: colors.text, fontWeight: '700' },
+        default: { fontFamily: Fonts.bodyBold, fontSize: 11, color: colors.textTertiary },
+        selected: { fontFamily: Fonts.bodyBold, fontSize: 11, color: colors.accent },
       }}
       tintColor={colors.accent}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf={{ default: 'play.rectangle', selected: 'play.rectangle.fill' }}
+          sf={{ default: 'house', selected: 'house.fill' }}
           md={{ default: 'home', selected: 'home_filled' }}
         />
       </NativeTabs.Trigger>

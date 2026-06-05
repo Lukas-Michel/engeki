@@ -1,61 +1,67 @@
+import { Feather } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
-import { Screen } from '@/components/media/screen';
+import { Screen, ScreenHeader } from '@/components/media/screen';
 import { SectionHeader } from '@/components/media/section-header';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Avatar, Card, ReactionPill } from '@/components/ui/kit';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { socialEntries } from '@/lib/library';
-
-const reactionLabels = {
-  love: 'Love',
-  like: 'Like',
-  dislike: 'Dislike',
-};
 
 export default function SocialsScreen() {
   const theme = useTheme();
 
   return (
     <Screen>
-      <View>
-        <ThemedText type="subtitle">Socials</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          A clean feed of what friends are watching.
-        </ThemedText>
-      </View>
+      <ScreenHeader
+        eyebrow="Your circle"
+        title="Socials"
+        subtitle="A calm feed of what friends are watching, rating, and finishing."
+      />
 
       <View style={styles.section}>
-        <SectionHeader title="Friend feed" action="Live with Convex" />
-        {socialEntries.map((entry) => (
-          <ThemedView type="surface" style={styles.feedItem} key={entry.id}>
-            <View style={[styles.avatar, { backgroundColor: theme.backgroundSelected }]}>
-              <ThemedText type="smallBold">{entry.avatar}</ThemedText>
-            </View>
-            <View style={styles.feedCopy}>
-              <ThemedText type="smallBold">
-                {entry.friend} {entry.action} {entry.title}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {entry.time}
-              </ThemedText>
-            </View>
-            <View style={[styles.badge, { backgroundColor: theme.accentSoft }]}>
-              <ThemedText type="code" style={{ color: theme.accent }}>
-                {reactionLabels[entry.reaction]}
-              </ThemedText>
-            </View>
-          </ThemedView>
-        ))}
+        <SectionHeader title="Friend feed" caption="Updated moments ago" />
+        <View style={styles.feed}>
+          {socialEntries.map((entry) => (
+            <Card style={styles.item} key={entry.id}>
+              <Avatar seed={entry.friend} size={46} />
+              <View style={styles.copy}>
+                <ThemedText type="smallBold" numberOfLines={2}>
+                  <ThemedText type="smallBold" style={{ color: theme.text }}>
+                    {entry.friend}{' '}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {entry.action}{' '}
+                  </ThemedText>
+                  <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                    {entry.title}
+                  </ThemedText>
+                </ThemedText>
+                <View style={styles.metaRow}>
+                  <ThemedText type="label" themeColor="textTertiary">
+                    {entry.time}
+                  </ThemedText>
+                  <View style={[styles.dot, { backgroundColor: theme.borderStrong }]} />
+                  <ReactionPill reaction={entry.reaction} />
+                </View>
+              </View>
+            </Card>
+          ))}
+        </View>
       </View>
 
-      <ThemedView type="surfaceMuted" style={styles.emptyState}>
-        <ThemedText type="smallBold">Friend graph</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          Convex will hold follows, reactions, and watched events once the deployment URL is added.
-        </ThemedText>
-      </ThemedView>
+      <Card tone="accent" style={styles.cta}>
+        <View style={[styles.ctaIcon, { backgroundColor: theme.accent }]}>
+          <Feather name="users" size={18} color={theme.onAccent} />
+        </View>
+        <View style={styles.ctaCopy}>
+          <ThemedText type="smallBold">Build your friend graph</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Convex will hold follows, reactions, and watched events once your deployment URL is connected.
+          </ThemedText>
+        </View>
+      </Card>
     </Screen>
   );
 }
@@ -64,32 +70,42 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.three,
   },
-  feedItem: {
-    borderRadius: 8,
-    padding: Spacing.three,
+  feed: {
+    gap: Spacing.two,
+  },
+  item: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  copy: {
+    flex: 1,
+    gap: 5,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  dot: {
+    width: 3,
+    height: 3,
+    borderRadius: 999,
+  },
+  cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  ctaIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  feedCopy: {
+  ctaCopy: {
     flex: 1,
-    gap: Spacing.half,
-  },
-  badge: {
-    borderRadius: 999,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-  },
-  emptyState: {
-    borderRadius: 8,
-    padding: Spacing.three,
-    gap: Spacing.one,
+    gap: 3,
   },
 });

@@ -140,6 +140,29 @@ export async function getRecentlyReleased(): Promise<MediaSummary[]> {
   );
 }
 
+export async function getUpcomingMovies(): Promise<MediaSummary[]> {
+  if (!isTmdbConfigured) {
+    return fallbackUpcomingMovies;
+  }
+
+  const data = await request<TmdbListResponse>('/movie/upcoming');
+  return normalizeList(data.results ?? []).filter((item) => item.mediaType === 'movie');
+}
+
+export async function getUpcomingTvSeasons(): Promise<MediaSummary[]> {
+  if (!isTmdbConfigured) {
+    return fallbackUpcomingTv;
+  }
+
+  const data = await request<TmdbListResponse>('/tv/on_the_air');
+  return normalizeList(data.results ?? [])
+    .filter((item) => item.mediaType === 'tv')
+    .map((item) => ({
+      ...item,
+      subtitle: 'New season',
+    }));
+}
+
 export async function searchMulti(query: string): Promise<MediaSummary[]> {
   if (!query.trim()) {
     return getTrending();
@@ -374,6 +397,108 @@ export const fallbackRecent: MediaSummary[] = [
     genreIds: [14, 18],
     backdropUrl: 'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?w=1200&q=80',
     posterUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=700&q=80',
+  },
+];
+
+export const fallbackUpcomingMovies: MediaSummary[] = [
+  {
+    id: 201,
+    mediaType: 'movie',
+    title: 'Low Orbit',
+    subtitle: 'Movie',
+    overview: 'A quiet orbital thriller about a pilot returning with a signal nobody expected.',
+    voteAverage: 7.6,
+    releaseDate: '2026-06-14',
+    genreIds: [878, 53],
+    backdropUrl: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1200&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1517976487492-5750f3195933?w=700&q=80',
+  },
+  {
+    id: 202,
+    mediaType: 'movie',
+    title: 'The Night Ferry',
+    subtitle: 'Movie',
+    overview: 'A ferry captain makes one impossible crossing after midnight.',
+    voteAverage: 7.2,
+    releaseDate: '2026-06-21',
+    genreIds: [9648, 18],
+    backdropUrl: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1200&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=700&q=80',
+  },
+  {
+    id: 203,
+    mediaType: 'movie',
+    title: 'Bright Wake',
+    subtitle: 'Movie',
+    overview: 'A summer drama about memory, distance, and a city waking before sunrise.',
+    voteAverage: 7.9,
+    releaseDate: '2026-06-28',
+    genreIds: [18],
+    backdropUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?w=700&q=80',
+  },
+  {
+    id: 204,
+    mediaType: 'movie',
+    title: 'Cut to Black',
+    subtitle: 'Movie',
+    overview: 'A production assistant finds a missing frame that changes a director’s last film.',
+    voteAverage: 7.1,
+    releaseDate: '2026-07-04',
+    genreIds: [53],
+    backdropUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1200&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=700&q=80',
+  },
+];
+
+export const fallbackUpcomingTv: MediaSummary[] = [
+  {
+    id: 301,
+    mediaType: 'tv',
+    title: 'North Pier',
+    subtitle: 'New season',
+    overview: 'Season 2 returns to the coast with the town watching every tide.',
+    voteAverage: 8.0,
+    releaseDate: '2026-06-12',
+    genreIds: [18, 80],
+    backdropUrl: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1200&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1495567720989-cebdbdd97913?w=700&q=80',
+  },
+  {
+    id: 302,
+    mediaType: 'tv',
+    title: 'Signal Room',
+    subtitle: 'New season',
+    overview: 'The archive opens a second frequency.',
+    voteAverage: 8.4,
+    releaseDate: '2026-06-19',
+    genreIds: [9648, 18],
+    backdropUrl: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=1200&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=700&q=80',
+  },
+  {
+    id: 303,
+    mediaType: 'tv',
+    title: 'Gold Mile',
+    subtitle: 'New show',
+    overview: 'A new limited series about a family empire collapsing under one contract.',
+    voteAverage: 7.8,
+    releaseDate: '2026-06-25',
+    genreIds: [18],
+    backdropUrl: 'https://images.unsplash.com/photo-1495567720989-cebdbdd97913?w=1200&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1527030280862-64139fba04ca?w=700&q=80',
+  },
+  {
+    id: 304,
+    mediaType: 'tv',
+    title: 'The Exchange',
+    subtitle: 'New season',
+    overview: 'Season 3 moves the negotiation to a city under blackout.',
+    voteAverage: 7.5,
+    releaseDate: '2026-07-02',
+    genreIds: [18, 53],
+    backdropUrl: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1f?w=1200&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=700&q=80',
   },
 ];
 

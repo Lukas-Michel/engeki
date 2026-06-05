@@ -1,11 +1,12 @@
 import { useAuth, useUser } from '@clerk/expo';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
 
-import { Screen } from '@/components/media/screen';
+import { Screen, ScreenHeader } from '@/components/media/screen';
 import { SectionHeader } from '@/components/media/section-header';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Avatar, Card, GradientButton } from '@/components/ui/kit';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { isClerkConfigured, isConvexConfigured, isTmdbConfigured } from '@/lib/config';
 
@@ -14,101 +15,137 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <View>
-        <ThemedText type="subtitle">Settings</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          Secrets, account, data sync, and appearance.
-        </ThemedText>
-      </View>
-
-      <View style={styles.section}>
-        <SectionHeader title="Integrations" />
-        <IntegrationRow label="TMDB" enabled={isTmdbConfigured} value="EXPO_PUBLIC_TMDB_ACCESS_TOKEN" />
-        <IntegrationRow label="Clerk" enabled={isClerkConfigured} value="EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY" />
-        <IntegrationRow label="Convex" enabled={isConvexConfigured} value="EXPO_PUBLIC_CONVEX_URL" />
-      </View>
+      <ScreenHeader
+        eyebrow="Preferences"
+        title="Settings"
+        subtitle="Account, data sync, integrations, and appearance."
+      />
 
       <View style={styles.section}>
         <SectionHeader title="Account" />
         {isClerkConfigured ? <ClerkAccount /> : <MissingClerkCard />}
       </View>
 
-      <ThemedView type="surface" style={styles.card}>
-        <ThemedText type="smallBold">Appearance</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          Light and dark mode follow the device setting through Expo automatic user interface style.
-        </ThemedText>
-      </ThemedView>
+      <View style={styles.section}>
+        <SectionHeader title="Integrations" caption="Environment variables" />
+        <Card style={styles.group}>
+          <IntegrationRow label="TMDB" enabled={isTmdbConfigured} value="EXPO_PUBLIC_TMDB_ACCESS_TOKEN" icon="film" />
+          <Divider />
+          <IntegrationRow label="Clerk" enabled={isClerkConfigured} value="EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY" icon="lock" />
+          <Divider />
+          <IntegrationRow label="Convex" enabled={isConvexConfigured} value="EXPO_PUBLIC_CONVEX_URL" icon="database" />
+        </Card>
+      </View>
 
-      <ThemedView type="accentSoft" style={styles.card}>
-        <ThemedText type="smallBold" style={{ color: theme.accent }}>
-          Where secrets go
-        </ThemedText>
+      <View style={styles.section}>
+        <SectionHeader title="Appearance" />
+        <Card style={styles.infoCard}>
+          <View style={styles.infoHead}>
+            <Feather name="moon" size={18} color={theme.accent} />
+            <ThemedText type="smallBold">Automatic theme</ThemedText>
+          </View>
+          <ThemedText type="small" themeColor="textSecondary">
+            Light and dark mode follow your device setting through Expo&apos;s automatic interface style.
+          </ThemedText>
+        </Card>
+      </View>
+
+      <Card tone="accent" style={styles.infoCard}>
+        <View style={styles.infoHead}>
+          <Feather name="key" size={18} color={theme.accent} />
+          <ThemedText type="smallBold" style={{ color: theme.accent }}>
+            Where secrets go
+          </ThemedText>
+        </View>
         <ThemedText type="small" themeColor="textSecondary">
           Put local values in .env.local at the project root. Public Expo variables are embedded in the app bundle.
         </ThemedText>
-      </ThemedView>
+      </Card>
     </Screen>
   );
 }
 
-function IntegrationRow({ label, enabled, value }: { label: string; enabled: boolean; value: string }) {
+function Divider() {
+  const theme = useTheme();
+  return <View style={[styles.divider, { backgroundColor: theme.border }]} />;
+}
+
+function IntegrationRow({
+  label,
+  enabled,
+  value,
+  icon,
+}: {
+  label: string;
+  enabled: boolean;
+  value: string;
+  icon: React.ComponentProps<typeof Feather>['name'];
+}) {
   const theme = useTheme();
 
   return (
-    <ThemedView type="surface" style={styles.integrationRow}>
-      <View>
+    <View style={styles.integrationRow}>
+      <View style={[styles.integrationIcon, { backgroundColor: theme.surfaceMuted }]}>
+        <Feather name={icon} size={16} color={theme.textSecondary} />
+      </View>
+      <View style={styles.integrationCopy}>
         <ThemedText type="smallBold">{label}</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
+        <ThemedText type="code" themeColor="textTertiary" numberOfLines={1}>
           {value}
         </ThemedText>
       </View>
-      <View
-        style={[
-          styles.status,
-          {
-            backgroundColor: enabled ? theme.success : theme.surfaceMuted,
-          },
-        ]}>
-        <ThemedText type="code" style={{ color: enabled ? '#FFFFFF' : theme.textSecondary }}>
+      <View style={[styles.status, { backgroundColor: enabled ? theme.success : theme.surfaceMuted }]}>
+        <Feather
+          name={enabled ? 'check' : 'minus'}
+          size={11}
+          color={enabled ? '#FFFFFF' : theme.textTertiary}
+        />
+        <ThemedText type="label" style={{ color: enabled ? '#FFFFFF' : theme.textTertiary }}>
           {enabled ? 'Set' : 'Missing'}
         </ThemedText>
       </View>
-    </ThemedView>
+    </View>
   );
 }
 
 function MissingClerkCard() {
+  const theme = useTheme();
   return (
-    <ThemedView type="surface" style={styles.card}>
-      <ThemedText type="smallBold">Authentication disabled</ThemedText>
+    <Card style={styles.infoCard}>
+      <View style={styles.infoHead}>
+        <Feather name="lock" size={18} color={theme.textSecondary} />
+        <ThemedText type="smallBold">Authentication disabled</ThemedText>
+      </View>
       <ThemedText type="small" themeColor="textSecondary">
         Add a Clerk publishable key to enable the sign-in gate and account controls.
       </ThemedText>
-    </ThemedView>
+    </Card>
   );
 }
 
 function ClerkAccount() {
-  const theme = useTheme();
   const { isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const { user } = useUser();
   const { signOut } = useAuth();
 
+  const email = user?.primaryEmailAddress?.emailAddress;
+  const name = user?.fullName ?? email ?? 'Guest';
+
   return (
-    <ThemedView type="surface" style={styles.card}>
-      <ThemedText type="smallBold">{isSignedIn ? user?.primaryEmailAddress?.emailAddress : 'Signed out'}</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        Clerk is configured and protecting the app when signed out.
-      </ThemedText>
-      {isSignedIn ? (
-        <Pressable style={[styles.button, { backgroundColor: theme.accent }]} onPress={() => signOut()}>
-          <ThemedText type="smallBold" style={styles.buttonText}>
-            Sign out
+    <Card style={styles.accountCard}>
+      <View style={styles.accountRow}>
+        <Avatar seed={name} size={52} />
+        <View style={styles.accountCopy}>
+          <ThemedText type="smallBold" numberOfLines={1}>
+            {isSignedIn ? name : 'Signed out'}
           </ThemedText>
-        </Pressable>
-      ) : null}
-    </ThemedView>
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+            {isSignedIn ? email ?? 'Clerk session active' : 'Clerk is protecting the app'}
+          </ThemedText>
+        </View>
+      </View>
+      {isSignedIn ? <GradientButton label="Sign out" icon="log-out" onPress={() => signOut()} /> : null}
+    </Card>
   );
 }
 
@@ -116,31 +153,57 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.three,
   },
-  integrationRow: {
-    borderRadius: 8,
-    padding: Spacing.three,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.three,
-  },
-  status: {
-    borderRadius: 999,
-    paddingHorizontal: Spacing.two,
+  group: {
+    gap: 0,
     paddingVertical: Spacing.one,
   },
-  card: {
-    borderRadius: 8,
-    padding: Spacing.three,
+  divider: {
+    height: 1,
+    marginVertical: Spacing.one,
+  },
+  integrationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  integrationIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  integrationCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  status: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: Radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  accountCard: {
+    gap: Spacing.three,
+  },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  accountCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  infoCard: {
     gap: Spacing.two,
   },
-  button: {
-    borderRadius: 8,
+  infoHead: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: Spacing.one,
-  },
-  buttonText: {
-    color: '#FFFFFF',
+    gap: Spacing.two,
   },
 });

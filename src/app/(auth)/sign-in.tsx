@@ -1,18 +1,25 @@
 import { useSignIn } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { Screen } from '@/components/media/screen';
+import { AuthDivider, AuthInput, AuthShell } from '@/components/auth/auth-shell';
+import { GoogleSignInButton } from '@/components/auth/google-sign-in-button';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { GradientButton } from '@/components/ui/kit';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { isClerkConfigured } from '@/lib/config';
 
 export default function SignInScreen() {
   if (!isClerkConfigured) {
-    return <AuthSetupCard />;
+    return (
+      <AuthShell title="Clerk setup" subtitle="Authentication needs configuration.">
+        <ThemedText type="small" themeColor="textSecondary">
+          Add EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY to .env.local to enable authentication.
+        </ThemedText>
+      </AuthShell>
+    );
   }
 
   return <SignInForm />;
@@ -25,6 +32,7 @@ function SignInForm() {
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const busy = fetchStatus === 'fetching';
 
   const submit = async () => {
     setMessage('');
@@ -37,12 +45,10 @@ function SignInForm() {
 
     if (signIn.status === 'complete') {
       const finalized = await signIn.finalize();
-
       if (finalized.error) {
         setMessage(finalized.error.message);
         return;
       }
-
       router.replace('/');
       return;
     }
@@ -51,118 +57,64 @@ function SignInForm() {
   };
 
   return (
-    <Screen>
-      <ThemedView type="surface" style={styles.authCard}>
-        <View>
-          <ThemedText type="subtitle">Sign in</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            Track your watched history and friend feed across devices.
-          </ThemedText>
-        </View>
+    <AuthShell title="Welcome back" subtitle="Sign in to sync your history and friend feed.">
+      <GoogleSignInButton onError={setMessage} />
+      <AuthDivider />
 
-        <TextInput
-          value={emailAddress}
-          onChangeText={setEmailAddress}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          placeholder="Email address"
-          placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { borderColor: theme.border, color: theme.text }]}
-        />
-        {errors.fields.identifier ? (
-          <ThemedText type="small" themeColor="danger">
-            {errors.fields.identifier.message}
-          </ThemedText>
-        ) : null}
-
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder="Password"
-          placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { borderColor: theme.border, color: theme.text }]}
-        />
-        {errors.fields.password ? (
-          <ThemedText type="small" themeColor="danger">
-            {errors.fields.password.message}
-          </ThemedText>
-        ) : null}
-
-        {message ? (
-          <ThemedText type="small" themeColor="danger">
-            {message}
-          </ThemedText>
-        ) : null}
-
-        <Pressable
-          onPress={submit}
-          disabled={!emailAddress || !password || fetchStatus === 'fetching'}
-          style={[
-            styles.primaryButton,
-            {
-              backgroundColor: theme.accent,
-              opacity: !emailAddress || !password || fetchStatus === 'fetching' ? 0.56 : 1,
-            },
-          ]}>
-          <ThemedText type="smallBold" style={styles.primaryButtonText}>
-            Continue
-          </ThemedText>
-        </Pressable>
-
-        <View style={styles.inline}>
-          <ThemedText type="small" themeColor="textSecondary">
-            New here?
-          </ThemedText>
-          <Link href="/sign-up">
-            <ThemedText type="smallBold" style={{ color: theme.accent }}>
-              Create account
-            </ThemedText>
-          </Link>
-        </View>
-      </ThemedView>
-    </Screen>
-  );
-}
-
-function AuthSetupCard() {
-  return (
-    <Screen>
-      <ThemedView type="surface" style={styles.authCard}>
-        <ThemedText type="subtitle">Clerk setup</ThemedText>
-        <ThemedText themeColor="textSecondary">
-          Add EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY to .env.local to enable authentication.
+      <AuthInput
+        icon="mail"
+        value={emailAddress}
+        onChangeText={setEmailAddress}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        placeholder="Email address"
+      />
+      {errors.fields.identifier ? (
+        <ThemedText type="small" themeColor="danger">
+          {errors.fields.identifier.message}
         </ThemedText>
-      </ThemedView>
-    </Screen>
+      ) : null}
+
+      <AuthInput icon="lock" value={password} onChangeText={setPassword} secureTextEntry placeholder="Password" />
+      {errors.fields.password ? (
+        <ThemedText type="small" themeColor="danger">
+          {errors.fields.password.message}
+        </ThemedText>
+      ) : null}
+
+      {message ? (
+        <ThemedText type="small" themeColor="danger">
+          {message}
+        </ThemedText>
+      ) : null}
+
+      <GradientButton
+        label="Sign in"
+        icon="arrow-right"
+        onPress={submit}
+        loading={busy}
+        disabled={!emailAddress || !password}
+      />
+
+      <View style={styles.inline}>
+        <ThemedText type="small" themeColor="textSecondary">
+          New here?
+        </ThemedText>
+        <Link href="/sign-up">
+          <ThemedText type="smallBold" style={{ color: theme.accent }}>
+            Create account
+          </ThemedText>
+        </Link>
+      </View>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  authCard: {
-    borderRadius: 8,
-    padding: Spacing.three,
-    gap: Spacing.three,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 14,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  primaryButton: {
-    borderRadius: 8,
-    alignItems: 'center',
-    paddingVertical: 14,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-  },
   inline: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.two,
   },
 });

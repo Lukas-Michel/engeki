@@ -1,17 +1,22 @@
+import { Feather } from '@expo/vector-icons';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
 
 import { MediaCard } from '@/components/media/media-card';
-import { Screen } from '@/components/media/screen';
+import { Screen, ScreenHeader } from '@/components/media/screen';
 import { SectionHeader } from '@/components/media/section-header';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { SegmentedControl } from '@/components/ui/kit';
+import { Radius, Spacing } from '@/constants/theme';
 import { useAsync } from '@/hooks/use-async';
 import { useTheme } from '@/hooks/use-theme';
 import { fallbackTrending, searchMulti, type MediaType } from '@/lib/tmdb';
 
-const filters: ('all' | MediaType)[] = ['all', 'movie', 'tv'];
+const filterOptions: { value: 'all' | MediaType; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'movie', label: 'Films' },
+  { value: 'tv', label: 'Series' },
+];
 
 export default function DiscoverScreen() {
   const theme = useTheme();
@@ -19,109 +24,107 @@ export default function DiscoverScreen() {
   const [filter, setFilter] = useState<'all' | MediaType>('all');
   const loadSearch = useCallback(() => searchMulti(query), [query]);
   const search = useAsync(loadSearch, fallbackTrending);
+  const isSearching = query.trim().length > 0;
 
   const filtered = useMemo(() => {
-    if (filter === 'all') {
-      return search.data;
-    }
-
+    if (filter === 'all') return search.data;
     return search.data.filter((item) => item.mediaType === filter);
   }, [filter, search.data]);
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <ThemedText type="subtitle">Discover</ThemedText>
-        {search.loading ? <ActivityIndicator color={theme.accent} /> : null}
+      <ScreenHeader title="Discover" />
+
+      <View style={[styles.search, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
+        <Feather name="search" size={18} color={theme.textTertiary} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search titles, seasons, people…"
+          placeholderTextColor={theme.textTertiary}
+          autoCapitalize="none"
+          returnKeyType="search"
+          style={[styles.input, { color: theme.text }]}
+        />
+        {search.loading ? (
+          <ActivityIndicator size="small" color={theme.accent} />
+        ) : isSearching ? (
+          <Feather name="x" size={18} color={theme.textTertiary} onPress={() => setQuery('')} />
+        ) : null}
       </View>
 
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search movies, shows, seasons..."
-        placeholderTextColor={theme.textSecondary}
-        autoCapitalize="none"
-        returnKeyType="search"
-        style={[
-          styles.search,
-          {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-            color: theme.text,
-          },
-        ]}
-      />
-
-      <View style={styles.filterRow}>
-        {filters.map((item) => {
-          const active = item === filter;
-
-          return (
-            <Pressable
-              key={item}
-              onPress={() => setFilter(item)}
-              style={[
-                styles.filter,
-                {
-                  backgroundColor: active ? theme.accent : theme.surface,
-                  borderColor: active ? theme.accent : theme.border,
-                },
-              ]}>
-              <ThemedText type="smallBold" style={{ color: active ? '#FFFFFF' : theme.text }}>
-                {item === 'all' ? 'All' : item === 'movie' ? 'Movies' : 'TV'}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
+      <SegmentedControl options={filterOptions} value={filter} onChange={setFilter} />
 
       {search.error ? (
-        <ThemedView type="accentSoft" style={styles.notice}>
-          <ThemedText type="small" style={{ color: theme.accent }}>
+        <View style={[styles.notice, { backgroundColor: theme.accentSoft }]}>
+          <Feather name="alert-circle" size={15} color={theme.accent} />
+          <ThemedText type="small" style={{ color: theme.accent, flex: 1 }}>
             {search.error}
           </ThemedText>
-        </ThemedView>
+        </View>
       ) : null}
 
       <View style={styles.section}>
-        <SectionHeader title={query ? 'Search results' : 'Trending now'} action={`${filtered.length} items`} />
-        {filtered.map((item) => (
-          <MediaCard item={item} key={`${item.mediaType}-${item.id}`} />
-        ))}
+        <SectionHeader
+          title={isSearching ? 'Search results' : 'Trending now'}
+          caption={`${filtered.length} ${filtered.length === 1 ? 'title' : 'titles'}`}
+        />
+        {filtered.length === 0 && !search.loading ? (
+          <View style={[styles.empty, { borderColor: theme.border }]}>
+            <Feather name="film" size={22} color={theme.textTertiary} />
+            <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
+              Nothing matched. Try a different title or filter.
+            </ThemedText>
+          </View>
+        ) : (
+          filtered.map((item, index) => (
+            <MediaCard
+              item={item}
+              rank={isSearching ? undefined : index + 1}
+              key={`${item.mediaType}-${item.id}`}
+            />
+          ))
+        )}
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
+  search: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  search: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 14,
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  filterRow: {
-    flexDirection: 'row',
     gap: Spacing.two,
-  },
-  filter: {
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: Radius.pill,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    height: 52,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: 'Manrope_500Medium',
   },
   notice: {
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Radius.md,
     padding: Spacing.three,
   },
   section: {
     gap: Spacing.three,
+  },
+  empty: {
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    paddingVertical: Spacing.six,
+    paddingHorizontal: Spacing.four,
+  },
+  emptyText: {
+    textAlign: 'center',
   },
 });

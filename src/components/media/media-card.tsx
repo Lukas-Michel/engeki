@@ -3,18 +3,23 @@ import { Link } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Icon, RatingBadge, Tag } from '@/components/ui/kit';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDate, type MediaSummary } from '@/lib/tmdb';
+import { useWatchlist } from '@/lib/watchlist';
 
 type MediaCardProps = {
   item: MediaSummary;
+  /** Optional leading rank number for ordered lists. */
+  rank?: number;
   compact?: boolean;
 };
 
-export function MediaCard({ item, compact = false }: MediaCardProps) {
+export function MediaCard({ item, rank, compact = false }: MediaCardProps) {
   const theme = useTheme();
+  const { isWatchlisted, toggleWatchlist } = useWatchlist();
+  const watchlisted = isWatchlisted(item.mediaType, item.id);
 
   return (
     <Link
@@ -23,73 +28,127 @@ export function MediaCard({ item, compact = false }: MediaCardProps) {
         params: { mediaType: item.mediaType, id: String(item.id) },
       }}
       asChild>
-      <Pressable style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}>
-        <ThemedView type="surface" style={[styles.card, compact && styles.compactCard]}>
-          <Image source={{ uri: item.posterUrl ?? item.backdropUrl }} style={styles.poster} contentFit="cover" />
+      <Pressable style={({ pressed }) => [pressed && styles.pressed]}>
+        <View style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          {rank ? (
+            <ThemedText type="display" style={[styles.rank, { color: theme.surfaceStrong }]}>
+              {rank}
+            </ThemedText>
+          ) : null}
+
+          <Image
+            source={{ uri: item.posterUrl ?? item.backdropUrl }}
+            style={[styles.poster, { backgroundColor: theme.surfaceMuted }]}
+            contentFit="cover"
+            transition={200}
+          />
+
           <View style={styles.copy}>
-            <ThemedText type="smallBold" numberOfLines={2}>
+            <View style={styles.topLine}>
+              <Tag label={item.mediaType === 'tv' ? 'Series' : 'Film'} tone="soft" />
+              {item.voteAverage > 0 ? <RatingBadge score={item.voteAverage} /> : null}
+            </View>
+
+            <ThemedText type="subtitle" numberOfLines={2} style={styles.title}>
               {item.title}
             </ThemedText>
-            <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-              {item.subtitle} · {formatDate(item.releaseDate)}
-            </ThemedText>
+
             <View style={styles.metaRow}>
-              <View style={[styles.score, { backgroundColor: theme.accentSoft }]}>
-                <ThemedText type="code" style={{ color: theme.accent }}>
-                  {item.voteAverage.toFixed(1)}
-                </ThemedText>
-              </View>
-              <ThemedText type="small" themeColor="textSecondary" numberOfLines={compact ? 1 : 2} style={styles.overview}>
-                {item.overview || 'Details coming soon.'}
+              <Icon name="calendar" size={12} themeColor="textTertiary" />
+              <ThemedText type="label" themeColor="textSecondary">
+                {formatDate(item.releaseDate)}
               </ThemedText>
             </View>
+
+            {!compact ? (
+              <ThemedText type="small" themeColor="textSecondary" numberOfLines={2} style={styles.overview}>
+                {item.overview || 'Synopsis coming soon.'}
+              </ThemedText>
+            ) : null}
           </View>
-        </ThemedView>
+
+          <Pressable
+            hitSlop={8}
+            onPress={(event) => {
+              event.preventDefault();
+              toggleWatchlist(item);
+            }}
+            style={[
+              styles.watchlistButton,
+              {
+                backgroundColor: watchlisted ? theme.accent : theme.surfaceMuted,
+                borderColor: watchlisted ? theme.accent : theme.border,
+              },
+            ]}>
+            <Icon name="bookmark" size={16} color={watchlisted ? theme.onAccent : theme.textTertiary} />
+          </Pressable>
+
+          <View style={styles.chevron}>
+            <Icon name="chevron-right" size={18} themeColor="textTertiary" />
+          </View>
+        </View>
       </Pressable>
     </Link>
   );
 }
 
 const styles = StyleSheet.create({
-  pressable: {
-    width: '100%',
-  },
   pressed: {
-    opacity: 0.76,
+    opacity: 0.9,
     transform: [{ scale: 0.99 }],
   },
-  card: {
-    borderRadius: 8,
-    padding: Spacing.two,
+  row: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.three,
-    overflow: 'hidden',
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    padding: Spacing.two,
+    paddingRight: Spacing.three,
   },
-  compactCard: {
-    minHeight: 112,
+  rank: {
+    width: 30,
+    textAlign: 'center',
+    fontSize: 34,
+    lineHeight: 38,
   },
   poster: {
-    width: 74,
+    width: 76,
     aspectRatio: 2 / 3,
-    borderRadius: 7,
-    backgroundColor: '#222222',
+    borderRadius: Radius.sm,
   },
   copy: {
     flex: 1,
     gap: Spacing.one,
     justifyContent: 'center',
   },
+  topLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  title: {
+    fontSize: 18,
+    lineHeight: 22,
+  },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
-  },
-  score: {
-    borderRadius: 999,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.half,
+    gap: 5,
   },
   overview: {
-    flex: 1,
+    marginTop: 2,
+  },
+  watchlistButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chevron: {
+    marginLeft: -Spacing.one,
   },
 });
