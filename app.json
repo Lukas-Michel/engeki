@@ -34,11 +34,20 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      "@clerk/expo",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0c4117b3-f647-4ca6-87a5-dfe151e76a7e"
+      }
+    },
+    "owner": "stubbenator"
   }
 }

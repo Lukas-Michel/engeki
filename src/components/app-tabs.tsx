@@ -10,21 +10,51 @@ export default function AppTabs() {
   return (
     <NativeTabs
       backgroundColor={colors.background}
-      indicatorColor={colors.backgroundElement}
-      labelStyle={{ selected: { color: colors.text } }}>
+      blurEffect={scheme === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
+      iconColor={{ default: colors.textSecondary, selected: colors.accent }}
+      indicatorColor={colors.accentSoft}
+      labelStyle={{
+        default: { color: colors.textSecondary },
+        selected: { color: colors.text, fontWeight: '700' },
+      }}
+      tintColor={colors.accent}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/home.png')}
-          renderingMode="template"
+          sf={{ default: 'play.rectangle', selected: 'play.rectangle.fill' }}
+          md={{ default: 'home', selected: 'home_filled' }}
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="discover">
+        <NativeTabs.Trigger.Label>Discover</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/explore.png')}
-          renderingMode="template"
+          sf={{ default: 'magnifyingglass', selected: 'sparkle.magnifyingglass' }}
+          md="search"
+        />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="socials">
+        <NativeTabs.Trigger.Label>Socials</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'person.2', selected: 'person.2.fill' }}
+          md={{ default: 'groups', selected: 'groups' }}
+        />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="history">
+        <NativeTabs.Trigger.Label>History</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'clock.arrow.circlepath', selected: 'clock.arrow.circlepath' }}
+          md="history"
+        />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="settings">
+        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'gearshape', selected: 'gearshape.fill' }}
+          md={{ default: 'settings', selected: 'settings' }}
         />
       </NativeTabs.Trigger>
     </NativeTabs>
