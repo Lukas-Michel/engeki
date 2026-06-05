@@ -14,12 +14,12 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useAsync } from '@/hooks/use-async';
 import { useTheme } from '@/hooks/use-theme';
 import {
-  fallbackTrending,
-  formatDate,
-  formatRuntime,
-  getMediaDetails,
-  type MediaReaction,
-  type MediaType,
+    fallbackTrending,
+    formatDate,
+    formatRuntime,
+    getMediaDetails,
+    type MediaReaction,
+    type MediaType,
 } from '@/lib/tmdb';
 import { useWatchlist } from '@/lib/watchlist';
 

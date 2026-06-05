@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { PropsWithChildren, ComponentProps } from 'react';
+import { ComponentProps, PropsWithChildren } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
 import { Screen } from '@/components/media/screen';

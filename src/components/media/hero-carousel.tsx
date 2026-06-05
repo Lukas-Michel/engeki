@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Animated, Dimensions, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Dimensions, FlatList, Platform, Pressable, StyleSheet, View, type ListRenderItem } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -9,11 +9,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatDate, type MediaSummary } from '@/lib/tmdb';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const POSTER_WIDTH = Math.min(SCREEN_WIDTH * 0.58, 238);
+const POSTER_WIDTH = Math.min(SCREEN_WIDTH * 0.7, 292);
 const POSTER_HEIGHT = POSTER_WIDTH * 1.48;
-const SLIDE_GAP = Spacing.four;
-const SNAP_INTERVAL = POSTER_WIDTH + SLIDE_GAP;
-const SIDE_INSET = Math.max((SCREEN_WIDTH - POSTER_WIDTH) / 2, Spacing.three);
+const MAX_ITEMS = 10;
 
 type HeroCarouselProps = {
   items: MediaSummary[];
@@ -29,13 +27,12 @@ const actionCopy: Record<Action, { idle: string; active: string }> = {
 
 export function HeroCarousel({ items }: HeroCarouselProps) {
   const theme = useTheme();
-  const [scrollX] = useState(() => new Animated.Value(0));
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeActions, setActiveActions] = useState<Record<string, Partial<Record<Action, boolean>>>>({});
-  const safeItems = useMemo(() => items.slice(0, 8), [items]);
-  const activeItem = safeItems[activeIndex] ?? safeItems[0];
+  const safeItems = useMemo(() => items.slice(0, MAX_ITEMS), [items]);
+  const safeActiveIndex = getWrappedIndex(activeIndex, safeItems.length);
+  const activeItem = safeItems[safeActiveIndex];
   const activeKey = activeItem ? `${activeItem.mediaType}-${activeItem.id}` : '';
-  const imageUrl = activeItem?.backdropUrl ?? activeItem?.posterUrl;
 
   const toggleAction = (action: Action) => {
     setActiveActions((current) => ({
@@ -47,74 +44,70 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
     }));
   };
 
+  const renderPoster: ListRenderItem<MediaSummary> = useCallback(
+    ({ item, index }) => (
+      <View style={styles.slide}>
+        <Link
+          href={{
+            pathname: '/details/[mediaType]/[id]',
+            params: { mediaType: item.mediaType, id: String(item.id) },
+          }}
+          asChild>
+          <Pressable style={styles.posterFrame}>
+            <Image source={{ uri: item.posterUrl ?? item.backdropUrl }} style={styles.poster} contentFit="cover" />
+            <View style={styles.posterShade} />
+            <TrendingReason item={item} index={index} />
+          </Pressable>
+        </Link>
+      </View>
+    ),
+    []
+  );
+
   if (!activeItem) {
     return null;
   }
 
   return (
     <View style={styles.shell}>
-      <Image source={{ uri: imageUrl }} style={styles.backdrop} contentFit="cover" blurRadius={36} />
-      <View style={[styles.ambientOverlay, { backgroundColor: theme.background }]} />
       <View style={styles.topCopy}>
-        <ThemedText type="code" themeColor="textSecondary" style={styles.kicker}>
-          TRENDING THIS WEEK
+        <ThemedText type="heading" style={[styles.kicker, { color: theme.danger }]}>
+          Trending
         </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          Swipe the poster rail. Actions below apply to the centered title.
-        </ThemedText>
+        <View style={styles.dots}>
+          {safeItems.map((item, index) => (
+            <View
+              key={`${item.mediaType}-${item.id}-dot`}
+              style={[
+                styles.dot,
+                {
+                  width: safeActiveIndex === index ? 24 : 7,
+                  backgroundColor: safeActiveIndex === index ? theme.danger : theme.border,
+                },
+              ]}
+            />
+          ))}
+        </View>
       </View>
 
-      <Animated.FlatList
+      <FlatList
         data={safeItems}
-        keyExtractor={(item) => `${item.mediaType}-${item.id}`}
-        horizontal
-        snapToInterval={SNAP_INTERVAL}
         decelerationRate="fast"
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.list}
+        getItemLayout={(_, index) => ({
+          index,
+          length: SCREEN_WIDTH,
+          offset: SCREEN_WIDTH * index,
+        })}
+        horizontal
+        keyExtractor={(item) => `${item.mediaType}-${item.id}`}
         onMomentumScrollEnd={(event) => {
-          const index = Math.round(event.nativeEvent.contentOffset.x / SNAP_INTERVAL);
+          const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
           setActiveIndex(Math.min(Math.max(index, 0), safeItems.length - 1));
         }}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-          useNativeDriver: Platform.OS !== 'web',
-        })}
-        scrollEventThrottle={16}
-        renderItem={({ item, index }) => {
-          const inputRange = [(index - 1) * SNAP_INTERVAL, index * SNAP_INTERVAL, (index + 1) * SNAP_INTERVAL];
-          const scale = scrollX.interpolate({
-            inputRange,
-            outputRange: [0.82, 1, 0.82],
-            extrapolate: 'clamp',
-          });
-          const opacity = scrollX.interpolate({
-            inputRange,
-            outputRange: [0.42, 1, 0.42],
-            extrapolate: 'clamp',
-          });
-          const translateY = scrollX.interpolate({
-            inputRange,
-            outputRange: [22, 0, 22],
-            extrapolate: 'clamp',
-          });
-
-          return (
-            <Link
-              href={{
-                pathname: '/details/[mediaType]/[id]',
-                params: { mediaType: item.mediaType, id: String(item.id) },
-              }}
-              asChild>
-              <Pressable style={styles.slide}>
-                <Animated.View style={[styles.posterFrame, { opacity, transform: [{ translateY }, { scale }] }]}>
-                  <Image source={{ uri: item.posterUrl ?? item.backdropUrl }} style={styles.poster} contentFit="cover" />
-                  <View style={styles.posterShade} />
-                  <TrendingReason item={item} index={index} />
-                </Animated.View>
-              </Pressable>
-            </Link>
-          );
-        }}
+        pagingEnabled
+        renderItem={renderPoster}
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={SCREEN_WIDTH}
       />
 
       <View style={styles.activeCopy}>
@@ -122,7 +115,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
           {activeItem.title}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
-          {activeItem.subtitle} · {formatDate(activeItem.releaseDate)} · {getTrendReason(activeItem, activeIndex)}
+          {activeItem.subtitle} · {formatDate(activeItem.releaseDate)} · {getTrendReason(activeItem, safeActiveIndex)}
         </ThemedText>
       </View>
 
@@ -147,21 +140,6 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
             </Pressable>
           );
         })}
-      </View>
-
-      <View style={styles.dots}>
-        {safeItems.map((item, index) => (
-          <View
-            key={`${item.mediaType}-${item.id}-dot`}
-            style={[
-              styles.dot,
-              {
-                width: activeIndex === index ? 24 : 7,
-                backgroundColor: activeIndex === index ? theme.accent : theme.border,
-              },
-            ]}
-          />
-        ))}
       </View>
     </View>
   );
@@ -205,6 +183,14 @@ function getTrendReason(item: MediaSummary, index: number) {
   return 'high watchlist velocity';
 }
 
+function getWrappedIndex(index: number, length: number) {
+  if (length <= 0) {
+    return 0;
+  }
+
+  return ((index % length) + length) % length;
+}
+
 const styles = StyleSheet.create({
   shell: {
     marginHorizontal: -Spacing.three,
@@ -213,31 +199,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     gap: Spacing.three,
   },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-    opacity: 0.72,
-    transform: [{ scale: 1.18 }],
-  },
-  ambientOverlay: {
-    ...StyleSheet.absoluteFill,
-    opacity: 0.76,
-  },
   topCopy: {
+    alignItems: 'center',
+    gap: Spacing.two,
     paddingHorizontal: Spacing.three,
-    gap: Spacing.one,
   },
   kicker: {
-    letterSpacing: 1.8,
-  },
-  list: {
-    paddingHorizontal: SIDE_INSET,
-    gap: SLIDE_GAP,
-    alignItems: 'center',
+    fontSize: 28,
+    lineHeight: 34,
+    textAlign: 'center',
   },
   slide: {
-    width: POSTER_WIDTH,
-    height: POSTER_HEIGHT + Spacing.four,
+    width: SCREEN_WIDTH,
+    alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: Spacing.two,
   },
   posterFrame: {
     width: POSTER_WIDTH,
@@ -325,6 +301,7 @@ const styles = StyleSheet.create({
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
     gap: Spacing.one,
   },
   dot: {
