@@ -16,6 +16,7 @@ export default function AppTabs() {
       })}
       iconColor={{ default: colors.textTertiary, selected: colors.accent }}
       indicatorColor={colors.accentSoft}
+      labelVisibilityMode={Platform.OS === 'android' ? 'unlabeled' : undefined}
       rippleColor={colors.accentSoft}
       labelStyle={{
         default: { fontFamily: Fonts.bodyBold, fontSize: 11, color: colors.textTertiary },
