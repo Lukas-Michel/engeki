@@ -1,5 +1,5 @@
 import { PropsWithChildren, ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+import { ScrollView, StyleSheet, TextStyle, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -48,10 +48,11 @@ type ScreenHeaderProps = {
   title: string;
   subtitle?: string;
   right?: ReactNode;
+  titleStyle?: TextStyle;
 };
 
 /** Editorial page header: small uppercase eyebrow, serif title, optional subtitle. */
-export function ScreenHeader({ eyebrow, title, subtitle, right }: ScreenHeaderProps) {
+export function ScreenHeader({ eyebrow, title, subtitle, right, titleStyle }: ScreenHeaderProps) {
   const theme = useTheme();
 
   return (
@@ -62,7 +63,9 @@ export function ScreenHeader({ eyebrow, title, subtitle, right }: ScreenHeaderPr
             {eyebrow}
           </ThemedText>
         ) : null}
-        <ThemedText type="title">{title}</ThemedText>
+        <ThemedText type="title" style={titleStyle}>
+          {title}
+        </ThemedText>
         {subtitle ? (
           <ThemedText type="small" themeColor="textSecondary" style={styles.headerSubtitle}>
             {subtitle}

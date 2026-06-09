@@ -45,6 +45,17 @@ export type SeasonSummary = {
   posterUrl?: string;
 };
 
+export type EpisodeSummary = {
+  id: number;
+  seasonNumber: number;
+  episodeNumber: number;
+  name: string;
+  overview: string;
+  airDate?: string;
+  runtime?: number;
+  stillUrl?: string;
+};
+
 export type VideoSummary = {
   id: string;
   key: string;
@@ -110,6 +121,19 @@ type TmdbListResponse = {
   results?: TmdbMedia[];
 };
 
+type TmdbSeasonResponse = {
+  episodes?: {
+    id: number;
+    season_number: number;
+    episode_number: number;
+    name?: string;
+    overview?: string;
+    air_date?: string;
+    runtime?: number;
+    still_path?: string | null;
+  }[];
+};
+
 export class MissingTmdbCredentialsError extends Error {
   constructor() {
     super('Add EXPO_PUBLIC_TMDB_ACCESS_TOKEN or EXPO_PUBLIC_TMDB_API_KEY to .env.local.');
@@ -141,26 +165,116 @@ export async function getRecentlyReleased(): Promise<MediaSummary[]> {
 }
 
 export async function getUpcomingMovies(): Promise<MediaSummary[]> {
+  const minimumReleaseDate = formatTmdbDate(addDays(new Date(), 1));
+  const maximumReleaseDate = formatTmdbDate(addDays(new Date(), 180));
+
   if (!isTmdbConfigured) {
-    return fallbackUpcomingMovies;
+    return fallbackUpcomingMovies.filter(
+      (item) =>
+        item.releaseDate &&
+        item.releaseDate >= minimumReleaseDate &&
+        item.releaseDate <= maximumReleaseDate,
+    );
   }
 
-  const data = await request<TmdbListResponse>('/movie/upcoming');
-  return normalizeList(data.results ?? []).filter((item) => item.mediaType === 'movie');
+  const data = await request<TmdbListResponse>('/discover/movie', {
+    include_adult: 'false',
+    include_video: 'false',
+    'primary_release_date.gte': minimumReleaseDate,
+    'primary_release_date.lte': maximumReleaseDate,
+    sort_by: 'popularity.desc',
+  });
+
+  return normalizeList(data.results ?? [])
+    .filter(
+      (item) =>
+        item.mediaType === 'movie' &&
+        item.releaseDate !== undefined &&
+        item.releaseDate >= minimumReleaseDate &&
+        item.releaseDate <= maximumReleaseDate,
+    );
 }
 
-export async function getUpcomingTvSeasons(): Promise<MediaSummary[]> {
+export async function getPopular(mediaType: MediaType): Promise<MediaSummary[]> {
   if (!isTmdbConfigured) {
-    return fallbackUpcomingTv;
+    return fallbackDiscoverItems.filter((item) => item.mediaType === mediaType);
   }
 
-  const data = await request<TmdbListResponse>('/tv/on_the_air');
-  return normalizeList(data.results ?? [])
-    .filter((item) => item.mediaType === 'tv')
-    .map((item) => ({
-      ...item,
-      subtitle: 'New season',
-    }));
+  const data = await request<TmdbListResponse>(`/${mediaType}/popular`);
+  return normalizeList(data.results ?? []).filter((item) => item.mediaType === mediaType);
+}
+
+export async function getTopRated(mediaType: MediaType): Promise<MediaSummary[]> {
+  if (!isTmdbConfigured) {
+    return fallbackDiscoverItems
+      .filter((item) => item.mediaType === mediaType)
+      .sort((a, b) => b.voteAverage - a.voteAverage);
+  }
+
+  const data = await request<TmdbListResponse>(`/${mediaType}/top_rated`);
+  return normalizeList(data.results ?? []).filter((item) => item.mediaType === mediaType);
+}
+
+export async function getUpcomingTvSeasons(
+  watchlistedShows: MediaSummary[],
+): Promise<MediaSummary[]> {
+  const minimumReleaseDate = formatTmdbDate(addDays(new Date(), 1));
+  const maximumReleaseDate = formatTmdbDate(addDays(new Date(), 180));
+  const shows = watchlistedShows.filter((item) => item.mediaType === 'tv');
+
+  if (!isTmdbConfigured) {
+    const watchlistedIds = new Set(shows.map((item) => item.id));
+    return fallbackUpcomingTv.filter(
+      (item) =>
+        watchlistedIds.has(item.id) &&
+        item.releaseDate !== undefined &&
+        item.releaseDate >= minimumReleaseDate &&
+        item.releaseDate <= maximumReleaseDate,
+    );
+  }
+
+  const releases = await Promise.all(
+    shows.map(async (show): Promise<MediaSummary | undefined> => {
+      const details = await request<TmdbMedia>(`/tv/${show.id}`);
+      const upcomingSeason = details.seasons
+        ?.filter(
+          (season) =>
+            season.season_number > 0 &&
+            season.air_date !== undefined &&
+            season.air_date >= minimumReleaseDate &&
+            season.air_date <= maximumReleaseDate,
+        )
+        .sort((a, b) => (a.air_date ?? '').localeCompare(b.air_date ?? ''))[0];
+      const firstAirDate = details.first_air_date;
+
+      if (
+        !upcomingSeason &&
+        firstAirDate !== undefined &&
+        firstAirDate >= minimumReleaseDate &&
+        firstAirDate <= maximumReleaseDate
+      ) {
+        return {
+          ...show,
+          subtitle: 'New Show',
+          releaseDate: firstAirDate,
+        } satisfies MediaSummary;
+      }
+
+      if (!upcomingSeason?.air_date) {
+        return undefined;
+      }
+
+      return {
+        ...show,
+        subtitle: upcomingSeason.season_number === 1 ? 'New Show' : 'New Season',
+        releaseDate: upcomingSeason.air_date,
+      } satisfies MediaSummary;
+    }),
+  );
+
+  return releases
+    .filter((item): item is MediaSummary => item !== undefined)
+    .sort((a, b) => (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''));
 }
 
 export async function searchMulti(query: string): Promise<MediaSummary[]> {
@@ -200,6 +314,37 @@ export async function getMediaDetails(mediaType: MediaType, id: number): Promise
   const appendToResponse = mediaType === 'movie' ? 'credits,videos' : 'aggregate_credits,videos';
   const data = await request<TmdbMedia>(`/${mediaType}/${id}`, { append_to_response: appendToResponse });
   return normalizeDetails(data, mediaType);
+}
+
+export async function getSeasonEpisodes(
+  seriesId: number,
+  seasonNumber: number,
+): Promise<EpisodeSummary[]> {
+  if (!isTmdbConfigured) {
+    const episodeCount =
+      fallbackSeasons.find((season) => season.season_number === seasonNumber)?.episode_count ?? 8;
+
+    return Array.from({ length: episodeCount }, (_, index) => ({
+      id: seriesId * 10000 + seasonNumber * 100 + index + 1,
+      seasonNumber,
+      episodeNumber: index + 1,
+      name: `Episode ${index + 1}`,
+      overview: 'Episode details will appear when TMDB is connected.',
+      runtime: 52,
+    }));
+  }
+
+  const data = await request<TmdbSeasonResponse>(`/tv/${seriesId}/season/${seasonNumber}`);
+  return (data.episodes ?? []).map((episode) => ({
+    id: episode.id,
+    seasonNumber: episode.season_number,
+    episodeNumber: episode.episode_number,
+    name: episode.name ?? `Episode ${episode.episode_number}`,
+    overview: episode.overview ?? '',
+    airDate: episode.air_date,
+    runtime: episode.runtime,
+    stillUrl: tmdbImage(episode.still_path, 'w500'),
+  }));
 }
 
 async function request<T>(path: string, params: Record<string, string> = {}): Promise<T> {
@@ -266,6 +411,8 @@ function normalizeDetails(item: TmdbMedia, mediaType: MediaType): MediaDetails {
 
   return {
     ...summary,
+    posterUrl: tmdbImage(item.poster_path, 'w780') ?? summary.posterUrl,
+    backdropUrl: tmdbImage(item.backdrop_path, 'original') ?? summary.backdropUrl,
     runtime: item.runtime,
     episodeRuntime: item.episode_run_time?.[0],
     status: item.status,
@@ -332,6 +479,19 @@ export function formatRuntime(minutes?: number) {
   }
 
   return `${hours}h ${remainingMinutes}m`;
+}
+
+function addDays(date: Date, days: number) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+function formatTmdbDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export const fallbackTrending: MediaSummary[] = [
@@ -456,7 +616,7 @@ export const fallbackUpcomingTv: MediaSummary[] = [
     id: 301,
     mediaType: 'tv',
     title: 'North Pier',
-    subtitle: 'New season',
+    subtitle: 'New Season',
     overview: 'Season 2 returns to the coast with the town watching every tide.',
     voteAverage: 8.0,
     releaseDate: '2026-06-12',
@@ -468,7 +628,7 @@ export const fallbackUpcomingTv: MediaSummary[] = [
     id: 302,
     mediaType: 'tv',
     title: 'Signal Room',
-    subtitle: 'New season',
+    subtitle: 'New Season',
     overview: 'The archive opens a second frequency.',
     voteAverage: 8.4,
     releaseDate: '2026-06-19',
@@ -480,7 +640,7 @@ export const fallbackUpcomingTv: MediaSummary[] = [
     id: 303,
     mediaType: 'tv',
     title: 'Gold Mile',
-    subtitle: 'New show',
+    subtitle: 'New Show',
     overview: 'A new limited series about a family empire collapsing under one contract.',
     voteAverage: 7.8,
     releaseDate: '2026-06-25',
@@ -492,7 +652,7 @@ export const fallbackUpcomingTv: MediaSummary[] = [
     id: 304,
     mediaType: 'tv',
     title: 'The Exchange',
-    subtitle: 'New season',
+    subtitle: 'New Season',
     overview: 'Season 3 moves the negotiation to a city under blackout.',
     voteAverage: 7.5,
     releaseDate: '2026-07-02',
@@ -500,6 +660,13 @@ export const fallbackUpcomingTv: MediaSummary[] = [
     backdropUrl: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1f?w=1200&q=80',
     posterUrl: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=700&q=80',
   },
+];
+
+const fallbackDiscoverItems = [
+  ...fallbackTrending,
+  ...fallbackRecent,
+  ...fallbackUpcomingMovies,
+  ...fallbackUpcomingTv,
 ];
 
 const fallbackCast = [

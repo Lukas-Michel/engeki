@@ -6,9 +6,14 @@ type AsyncState<T> = {
   loading: boolean;
 };
 
-export function useAsync<T>(factory: () => Promise<T>, initialData: T) {
-  const [state, setState] = useState<AsyncState<T>>({
+type AsyncStateWithFactory<T> = AsyncState<T> & {
+  factory: () => Promise<T>;
+};
+
+export function useAsync<T>(factory: () => Promise<T>, initialData: T): AsyncState<T> {
+  const [state, setState] = useState<AsyncStateWithFactory<T>>({
     data: initialData,
+    factory,
     loading: true,
   });
 
@@ -18,7 +23,7 @@ export function useAsync<T>(factory: () => Promise<T>, initialData: T) {
     factory()
       .then((data) => {
         if (mounted) {
-          setState({ data, loading: false });
+          setState({ data, factory, loading: false });
         }
       })
       .catch((error: unknown) => {
@@ -26,6 +31,7 @@ export function useAsync<T>(factory: () => Promise<T>, initialData: T) {
           setState((current) => ({
             ...current,
             error: error instanceof Error ? error.message : 'Something went wrong.',
+            factory,
             loading: false,
           }));
         }
@@ -35,6 +41,14 @@ export function useAsync<T>(factory: () => Promise<T>, initialData: T) {
       mounted = false;
     };
   }, [factory]);
+
+  if (state.factory !== factory) {
+    return {
+      data: state.data,
+      error: undefined,
+      loading: true,
+    };
+  }
 
   return state;
 }

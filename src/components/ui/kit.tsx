@@ -112,25 +112,6 @@ export function Tag({
 }
 
 /* -------------------------------------------------------------------------- */
-/*  RatingBadge                                                               */
-/* -------------------------------------------------------------------------- */
-
-export function RatingBadge({ score, onDark = false }: { score: number; onDark?: boolean }) {
-  const theme = useTheme();
-  const tint = onDark ? '#FFFFFF' : theme.text;
-  const star = onDark ? theme.star : theme.gold;
-
-  return (
-    <View style={[styles.rating, onDark && styles.ratingDark]}>
-      <Feather name="star" size={11} color={star} />
-      <ThemedText type="smallBold" style={{ color: tint, fontSize: 12 }}>
-        {score.toFixed(1)}
-      </ThemedText>
-    </View>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
 /*  Avatar                                                                    */
 /* -------------------------------------------------------------------------- */
 
@@ -355,17 +336,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 5,
-  },
-  rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  ratingDark: {
-    backgroundColor: 'rgba(10,8,16,0.5)',
-    borderRadius: Radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
   },
   avatar: {
     alignItems: 'center',

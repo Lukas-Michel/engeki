@@ -1,23 +1,29 @@
 import { Feather } from '@expo/vector-icons';
+import { useQuery } from 'convex/react';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useState } from 'react';
+import { router } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
 } from 'react-native';
+import Animated, { CurvedTransition, Easing } from 'react-native-reanimated';
+
+import { api } from '../../../../convex/_generated/api';
 
 import { PosterCard } from '@/components/media/poster-card';
-import { Screen, ScreenHeader } from '@/components/media/screen';
+import { Screen } from '@/components/media/screen';
 import { SectionHeader } from '@/components/media/section-header';
 import { ThemedText } from '@/components/themed-text';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useAsync } from '@/hooks/use-async';
 import { useTheme } from '@/hooks/use-theme';
-import { watchProgress, type WatchProgress } from '@/lib/library';
+import { isConvexConfigured } from '@/lib/config';
 import {
   fallbackUpcomingMovies,
   fallbackUpcomingTv,
@@ -30,20 +36,16 @@ import { useWatchlist } from '@/lib/watchlist';
 const COLUMN_GAP = 12;
 const GRID_COLUMNS = 3;
 
-function greeting() {
-  const hour = new Date().getHours();
-  if (hour < 5) return 'Late show';
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Afternoon matinee';
-  return 'Tonight on Engeki';
-}
-
 export default function HomeScreen() {
+  const { items: watchlistItems, isWatchlisted } = useWatchlist();
+  const watchlistedTv = useMemo(
+    () => watchlistItems.filter((item) => item.mediaType === 'tv'),
+    [watchlistItems],
+  );
   const loadUpcomingMovies = useCallback(() => getUpcomingMovies(), []);
-  const loadUpcomingTv = useCallback(() => getUpcomingTvSeasons(), []);
+  const loadUpcomingTv = useCallback(() => getUpcomingTvSeasons(watchlistedTv), [watchlistedTv]);
   const movies = useAsync(loadUpcomingMovies, fallbackUpcomingMovies);
   const shows = useAsync(loadUpcomingTv, fallbackUpcomingTv);
-  const { isWatchlisted } = useWatchlist();
   const watchlistedMovies = movies.data.filter((item) => isWatchlisted(item.mediaType, item.id));
   const watchlistedShows = shows.data.filter((item) => isWatchlisted(item.mediaType, item.id));
   const upcomingLoading = movies.loading || shows.loading;
@@ -51,24 +53,7 @@ export default function HomeScreen() {
 
   return (
     <Screen contentStyle={styles.screen}>
-      <ScreenHeader title={greeting()} />
-
-      <View style={styles.section}>
-        <SectionHeader title="Continue watching" />
-        {watchProgress.length === 0 ? (
-          <EmptyState title="Nothing in progress" />
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.rail}
-            style={styles.edgeToEdge}>
-            {watchProgress.map((item) => (
-              <WatchingCard item={item} key={item.id} />
-            ))}
-          </ScrollView>
-        )}
-      </View>
+      <ContinueWatchingSection />
 
       {!upcomingLoading && !hasWatchlistedUpcoming ? (
         <View style={styles.section}>
@@ -78,20 +63,96 @@ export default function HomeScreen() {
       ) : (
         <>
           <UpcomingSection title="Upcoming Films" items={watchlistedMovies} loading={movies.loading} />
-          <UpcomingSection title="Upcoming Shows" items={watchlistedShows} loading={shows.loading} meta="subtitle" />
+          <UpcomingSection
+            title="Upcoming Shows"
+            items={watchlistedShows}
+            loading={shows.loading}
+            showReleaseBadge
+          />
         </>
       )}
     </Screen>
   );
 }
 
-function WatchingCard({ item }: { item: WatchProgress }) {
+type WatchingItem = {
+  id: string;
+  tmdbId: number;
+  mediaType: 'tv';
+  title: string;
+  posterUrl?: string;
+  backdropUrl?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  watchedEpisodes: number;
+  totalEpisodes: number;
+};
+
+function ContinueWatchingSection() {
+  if (!isConvexConfigured) {
+    return (
+      <View style={styles.section}>
+        <SectionHeader title="Up Next" />
+        <EmptyState title="Nothing in progress" />
+      </View>
+    );
+  }
+
+  return <ConnectedContinueWatching />;
+}
+
+function ConnectedContinueWatching() {
   const theme = useTheme();
-  const progress = item.episode / item.totalEpisodes;
+  const items = useQuery(api.watching.listWatching);
 
   return (
-    <View style={[styles.watchCard, { borderColor: theme.border }]}>
-      <Image source={{ uri: item.imageUrl }} style={styles.watchImage} contentFit="cover" transition={220} />
+    <View style={styles.section}>
+      <SectionHeader
+        title="Up Next"
+        right={items === undefined ? <ActivityIndicator size="small" color={theme.accent} /> : undefined}
+      />
+      {items?.length ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.rail}
+          style={styles.edgeToEdge}>
+          {items.map((item) => (
+            <WatchingCard item={item as WatchingItem} key={item.id} />
+          ))}
+        </ScrollView>
+      ) : items === undefined ? null : (
+        <EmptyState title="Nothing in progress" />
+      )}
+    </View>
+  );
+}
+
+function WatchingCard({ item }: { item: WatchingItem }) {
+  const theme = useTheme();
+  const progress = item.totalEpisodes > 0 ? item.watchedEpisodes / item.totalEpisodes : 0;
+  const imageUrl = item.backdropUrl ?? item.posterUrl;
+  const progressLabel =
+    item.seasonNumber !== undefined && item.episodeNumber !== undefined
+      ? `S${item.seasonNumber} · E${item.episodeNumber} watched`
+      : 'Not started';
+
+  return (
+    <Pressable
+      onPress={() =>
+        router.push({
+          pathname: '/details/[mediaType]/[id]',
+          params: { mediaType: 'tv', id: String(item.tmdbId) },
+        })
+      }
+      style={({ pressed }) => [
+        styles.watchCard,
+        { borderColor: theme.border },
+        pressed && styles.watchCardPressed,
+      ]}>
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={styles.watchImage} contentFit="cover" transition={220} />
+      ) : null}
       <LinearGradient colors={['rgba(6,4,12,0.1)', 'rgba(6,4,12,0.92)']} style={StyleSheet.absoluteFill} />
       <View style={styles.watchBody}>
         <ThemedText type="smallBold" style={styles.watchTitle} numberOfLines={1}>
@@ -99,7 +160,7 @@ function WatchingCard({ item }: { item: WatchProgress }) {
         </ThemedText>
         <View style={styles.watchMetaRow}>
           <ThemedText type="label" style={styles.watchMeta}>
-            S{item.season} · E{item.episode} of {item.totalEpisodes}
+            {progressLabel}
           </ThemedText>
           <ThemedText type="label" style={styles.watchMeta}>
             {Math.round(progress * 100)}%
@@ -109,13 +170,13 @@ function WatchingCard({ item }: { item: WatchProgress }) {
           <View style={[styles.fill, { width: `${Math.round(progress * 100)}%`, backgroundColor: theme.accentBright }]} />
         </View>
         <View style={styles.nextRow}>
-          <Feather name="clock" size={11} color="rgba(255,255,255,0.7)" />
+          <Feather name="check-circle" size={11} color="rgba(255,255,255,0.7)" />
           <ThemedText type="label" style={styles.nextText}>
-            Next episode {item.nextRelease}
+            {item.watchedEpisodes} of {item.totalEpisodes} episodes
           </ThemedText>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -123,19 +184,18 @@ function UpcomingSection({
   title,
   items,
   loading,
-  meta = 'date',
+  showReleaseBadge = false,
 }: {
   title: string;
   items: MediaSummary[];
   loading: boolean;
-  meta?: 'date' | 'subtitle';
+  showReleaseBadge?: boolean;
 }) {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(width, MaxContentWidth) - Spacing.three * 2;
   const itemWidth = (contentWidth - COLUMN_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
-  const visibleItems = expanded ? items : items.slice(0, GRID_COLUMNS);
 
   return (
     <View style={styles.section}>
@@ -143,19 +203,30 @@ function UpcomingSection({
         title={title}
         right={loading ? <ActivityIndicator size="small" color={theme.accent} /> : undefined}
         onSeeAll={items.length > GRID_COLUMNS ? () => setExpanded((value) => !value) : undefined}
-        seeAllLabel={expanded ? 'Collapse' : 'See all'}
+        seeAllLabel={expanded ? 'See less' : 'See all'}
+        expanded={expanded}
       />
 
       {items.length === 0 && !loading ? (
         <EmptyState title="No watchlisted titles" />
       ) : (
-        <View style={styles.grid}>
-          {visibleItems.map((item) => (
-            <View key={`${item.mediaType}-${item.id}`} style={{ width: itemWidth }}>
-              <PosterCard item={item} meta={meta} />
-            </View>
+        <ScrollView
+          horizontal
+          scrollEnabled={!expanded}
+          showsHorizontalScrollIndicator={false}
+          style={expanded ? undefined : styles.edgeToEdge}
+          contentContainerStyle={expanded ? [styles.gridContent, { width: contentWidth }] : styles.rail}>
+          {items.map((item) => (
+            <Animated.View
+              key={`${item.mediaType}-${item.id}`}
+              layout={CurvedTransition.duration(180)
+                .easingX(Easing.out(Easing.cubic))
+                .easingY(Easing.out(Easing.cubic))}
+              style={{ width: itemWidth }}>
+              <PosterCard item={item} badge={showReleaseBadge ? item.subtitle : undefined} />
+            </Animated.View>
           ))}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -184,9 +255,9 @@ const styles = StyleSheet.create({
   },
   rail: {
     paddingHorizontal: Spacing.three,
-    gap: Spacing.three,
+    gap: COLUMN_GAP,
   },
-  grid: {
+  gridContent: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     columnGap: COLUMN_GAP,
@@ -206,7 +277,7 @@ const styles = StyleSheet.create({
     minHeight: 180,
   },
 
-  /* Continue watching */
+  /* Up Next */
   watchCard: {
     width: 300,
     height: 178,
@@ -215,6 +286,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     justifyContent: 'flex-end',
     backgroundColor: '#111014',
+  },
+  watchCardPressed: {
+    opacity: 0.86,
+    transform: [{ scale: 0.985 }],
   },
   watchImage: {
     position: 'absolute',

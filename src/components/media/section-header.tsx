@@ -1,5 +1,10 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Icon } from '@/components/ui/kit';
@@ -14,6 +19,8 @@ type SectionHeaderProps = {
   /** A tappable "see all" affordance. */
   onSeeAll?: () => void;
   seeAllLabel?: string;
+  /** When provided, rotates the chevron to reflect expand/collapse state. */
+  expanded?: boolean;
   right?: ReactNode;
 };
 
@@ -23,9 +30,19 @@ export function SectionHeader({
   action,
   onSeeAll,
   seeAllLabel = 'See all',
+  expanded = false,
   right,
 }: SectionHeaderProps) {
   const theme = useTheme();
+  const rotation = useSharedValue(expanded ? 1 : 0);
+
+  useEffect(() => {
+    rotation.set(withTiming(expanded ? 1 : 0, { duration: 240 }));
+  }, [expanded, rotation]);
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.get() * 90}deg` }],
+  }));
 
   return (
     <View style={styles.row}>
@@ -48,7 +65,9 @@ export function SectionHeader({
           <ThemedText type="smallBold" style={{ color: theme.accent }}>
             {seeAllLabel}
           </ThemedText>
-          <Icon name="chevron-right" size={15} color={theme.accent} />
+          <Animated.View style={chevronStyle}>
+            <Icon name="chevron-right" size={15} color={theme.accent} />
+          </Animated.View>
         </Pressable>
       ) : action ? (
         <ThemedText type="label" themeColor="textTertiary">

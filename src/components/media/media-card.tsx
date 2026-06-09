@@ -3,7 +3,7 @@ import { Link } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Icon, RatingBadge, Tag } from '@/components/ui/kit';
+import { Icon, Tag } from '@/components/ui/kit';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDate, type MediaSummary } from '@/lib/tmdb';
@@ -46,7 +46,6 @@ export function MediaCard({ item, rank, compact = false }: MediaCardProps) {
           <View style={styles.copy}>
             <View style={styles.topLine}>
               <Tag label={item.mediaType === 'tv' ? 'Series' : 'Film'} tone="soft" />
-              {item.voteAverage > 0 ? <RatingBadge score={item.voteAverage} /> : null}
             </View>
 
             <ThemedText type="subtitle" numberOfLines={2} style={styles.title}>

@@ -1,14 +1,12 @@
 /**
- * Learn more about light and dark modes:
- * https://docs.expo.dev/guides/color-schemes/
+ * Engeki is a dark-only experience. The scheme is pinned to `dark` regardless
+ * of the OS preference so every surface uses the cinematic red palette.
  */
 
 import { Colors, Gradients } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function useSchemeName(): 'light' | 'dark' {
-  const scheme = useColorScheme();
-  return scheme === 'unspecified' || scheme == null ? 'dark' : scheme;
+  return 'dark';
 }
 
 export function useTheme() {

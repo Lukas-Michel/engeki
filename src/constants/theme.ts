@@ -1,8 +1,9 @@
 /**
  * Engeki design system — "Cinematic Editorial".
- * Layered dark-first surfaces, a refined violet accent with warm gold
- * highlights, and a high-contrast serif display (Fraunces) paired with a clean
- * grotesque body (Manrope).
+ * Dark-first, layered near-black surfaces warmed with a vivid cinematic red
+ * accent and amber star highlights, paired with a high-contrast serif display
+ * (Fraunces) and a clean grotesque body (Manrope). The app runs dark-only; the
+ * `light` palette is retained for type parity but is not surfaced in the UI.
  */
 
 import '@/global.css';
@@ -11,53 +12,53 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#15131F',
-    textSecondary: '#615D72',
-    textTertiary: '#928EA1',
-    background: '#F6F5FB',
+    text: '#1A1315',
+    textSecondary: '#6A5C5F',
+    textTertiary: '#9C8E91',
+    background: '#FAF6F6',
     backgroundElevated: '#FFFFFF',
     backgroundElement: '#FFFFFF',
-    backgroundSelected: '#EAE7F6',
+    backgroundSelected: '#FBE6E8',
     surface: '#FFFFFF',
-    surfaceMuted: '#F0EEF8',
-    surfaceStrong: '#E9E6F4',
-    border: '#E7E4F1',
-    borderStrong: '#D7D3E7',
-    accent: '#6D54D0',
-    accentBright: '#5B43C0',
-    accentSoft: '#ECE9FB',
+    surfaceMuted: '#F4EDEE',
+    surfaceStrong: '#ECE2E3',
+    border: '#EBE1E2',
+    borderStrong: '#DACFD0',
+    accent: '#D11F2E',
+    accentBright: '#B5151F',
+    accentSoft: '#FCE7E9',
     onAccent: '#FFFFFF',
     gold: '#C68A12',
     goldSoft: '#F7ECD4',
     success: '#1F9D6B',
     warning: '#C0902A',
-    danger: '#D6485F',
+    danger: '#C42A38',
     love: '#D6457E',
     star: '#E0A516',
-    shadow: '#1B1733',
+    shadow: '#2A0C10',
   },
   dark: {
-    text: '#F5F3FB',
-    textSecondary: '#A09BB2',
-    textTertiary: '#6E697F',
-    background: '#0A0910',
-    backgroundElevated: '#131119',
-    backgroundElement: '#131119',
-    backgroundSelected: '#262332',
-    surface: '#16141F',
-    surfaceMuted: '#1E1B28',
-    surfaceStrong: '#272336',
-    border: '#272336',
-    borderStrong: '#393450',
-    accent: '#9080F7',
-    accentBright: '#A998FF',
-    accentSoft: '#1F1B33',
+    text: '#F7F1F2',
+    textSecondary: '#B3A4A7',
+    textTertiary: '#7C6B6F',
+    background: '#0B0708',
+    backgroundElevated: '#160E10',
+    backgroundElement: '#160E10',
+    backgroundSelected: '#2C1A1D',
+    surface: '#190F12',
+    surfaceMuted: '#221518',
+    surfaceStrong: '#2E1C20',
+    border: '#2E1C20',
+    borderStrong: '#42292E',
+    accent: '#F2384A',
+    accentBright: '#FF5C6B',
+    accentSoft: '#2A1216',
     onAccent: '#FFFFFF',
     gold: '#F2C45A',
-    goldSoft: '#2A2415',
+    goldSoft: '#2A2014',
     success: '#46C68A',
     warning: '#E6B85C',
-    danger: '#F0697A',
+    danger: '#FF5C6B',
     love: '#F472A8',
     star: '#F4C766',
     shadow: '#000000',
@@ -69,13 +70,13 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 /** Gradient stops keyed by theme, paired in `[from, to]` order. */
 export const Gradients = {
   light: {
-    accent: ['#7E63E0', '#5B43C0'] as const,
-    scrim: ['rgba(8,6,18,0)', 'rgba(8,6,18,0.86)'] as const,
+    accent: ['#E23744', '#B5151F'] as const,
+    scrim: ['rgba(12,4,6,0)', 'rgba(12,4,6,0.86)'] as const,
     sheen: ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0)'] as const,
   },
   dark: {
-    accent: ['#A998FF', '#7B68E8'] as const,
-    scrim: ['rgba(4,3,9,0)', 'rgba(4,3,9,0.92)'] as const,
+    accent: ['#FF5C6B', '#D11F2E'] as const,
+    scrim: ['rgba(6,3,4,0)', 'rgba(6,3,4,0.94)'] as const,
     sheen: ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0)'] as const,
   },
 } as const;
@@ -120,25 +121,33 @@ export const Radius = {
 /** Soft, layered shadows tuned per platform. */
 export const Elevation = {
   card: Platform.select({
-    web: { boxShadow: '0 1px 2px rgba(20,16,40,0.04), 0 8px 24px rgba(20,16,40,0.06)' },
+    web: { boxShadow: '0 1px 2px rgba(26,10,14,0.05), 0 8px 24px rgba(26,10,14,0.08)' },
     default: {
-      shadowColor: '#140F24',
-      shadowOpacity: 0.1,
+      shadowColor: '#1A0A0E',
+      shadowOpacity: 0.12,
       shadowRadius: 18,
       shadowOffset: { width: 0, height: 10 },
       elevation: 4,
     },
   }) as object,
   floating: Platform.select({
-    web: { boxShadow: '0 16px 40px rgba(12,8,28,0.28)' },
+    web: { boxShadow: '0 16px 40px rgba(10,4,6,0.34)' },
     default: {
-      shadowColor: '#0A0716',
-      shadowOpacity: 0.32,
+      shadowColor: '#0A0406',
+      shadowOpacity: 0.38,
       shadowRadius: 30,
       shadowOffset: { width: 0, height: 18 },
       elevation: 12,
     },
   }) as object,
+} as const;
+
+export const TabBar = {
+  buttonWidth: 60,
+  buttonHeight: 48,
+  verticalPadding: Spacing.two,
+  bottomOffset: Spacing.two,
+  contentGap: Spacing.three,
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;

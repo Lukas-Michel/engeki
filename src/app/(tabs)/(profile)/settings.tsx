@@ -42,10 +42,10 @@ export default function SettingsScreen() {
         <Card style={styles.infoCard}>
           <View style={styles.infoHead}>
             <Feather name="moon" size={18} color={theme.accent} />
-            <ThemedText type="smallBold">Automatic theme</ThemedText>
+            <ThemedText type="smallBold">Always dark</ThemedText>
           </View>
           <ThemedText type="small" themeColor="textSecondary">
-            Light and dark mode follow your device setting through Expo&apos;s automatic interface style.
+            Engeki is tuned as a dark-only, cinematic experience with a vivid red accent — it stays dark regardless of your device setting.
           </ThemedText>
         </Card>
       </View>

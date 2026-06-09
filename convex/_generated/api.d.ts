@@ -8,13 +8,17 @@
  * @module
  */
 
+import type * as watching from "../watching.js";
+
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 
-declare const fullApi: ApiFromModules<{}>;
+declare const fullApi: ApiFromModules<{
+  watching: typeof watching;
+}>;
 
 /**
  * A utility for referencing Convex functions in your app's public API.

@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     TabList,
@@ -18,6 +18,7 @@ import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useGradients, useTheme } from '@/hooks/use-theme';
 
 type FeatherName = ComponentProps<typeof Feather>['name'];
+type TabIconName = FeatherName | 'popcorn';
 
 export default function AppTabs() {
   return (
@@ -25,20 +26,17 @@ export default function AppTabs() {
       <TabSlot style={{ height: '100%' }} />
       <TabList asChild>
         <CustomTabList>
-          <TabTrigger name="home" href="/" asChild>
-            <TabButton icon="home">Home</TabButton>
+          <TabTrigger name="home" href="/(tabs)/(home)" asChild>
+            <TabButton icon="clock">Up Next</TabButton>
           </TabTrigger>
-          <TabTrigger name="discover" href="/discover" asChild>
+          <TabTrigger name="discover" href="/(tabs)/(discover)/discover" asChild>
             <TabButton icon="compass">Discover</TabButton>
           </TabTrigger>
-          <TabTrigger name="socials" href="/socials" asChild>
-            <TabButton icon="users">Socials</TabButton>
+          <TabTrigger name="watchlist" href="/(tabs)/(watchlist)/watchlist" asChild>
+            <TabButton icon="popcorn">Watchlist</TabButton>
           </TabTrigger>
-          <TabTrigger name="history" href="/history" asChild>
-            <TabButton icon="clock">History</TabButton>
-          </TabTrigger>
-          <TabTrigger name="settings" href="/settings" asChild>
-            <TabButton icon="settings">Settings</TabButton>
+          <TabTrigger name="profile" href="/(tabs)/(profile)/profile" asChild>
+            <TabButton icon="user">Profile</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -46,7 +44,7 @@ export default function AppTabs() {
   );
 }
 
-type TabButtonProps = TabTriggerSlotProps & { icon: FeatherName };
+type TabButtonProps = TabTriggerSlotProps & { icon: TabIconName };
 
 export function TabButton({ children, icon, isFocused, ...props }: TabButtonProps) {
   const theme = useTheme();
@@ -55,7 +53,11 @@ export function TabButton({ children, icon, isFocused, ...props }: TabButtonProp
   return (
     <Pressable {...props} style={({ pressed }) => [styles.trigger, pressed && styles.pressed]}>
       <View style={[styles.triggerInner, isFocused && { backgroundColor: theme.accentSoft }]}>
-        <Feather name={icon} size={15} color={color} />
+        {icon === 'popcorn' ? (
+          <MaterialCommunityIcons name="popcorn" size={16} color={color} />
+        ) : (
+          <Feather name={icon} size={15} color={color} />
+        )}
         <ThemedText type="smallBold" style={{ color }}>
           {children}
         </ThemedText>
